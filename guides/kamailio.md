@@ -60,7 +60,7 @@ nano /etc/postgresql/13/main/postgresql.conf
 
 Key settings to update:
 
-```
+```conf
 # Basic settings
 listen_addresses = '127.0.0.1'
 port = 5432
@@ -148,7 +148,7 @@ nano /etc/default/kamailio
 
 Add the recommended values:
 
-```
+```conf
 # Kamailio startup options
 SHM_MEMORY=64
 PKG_MEMORY=8
@@ -166,27 +166,27 @@ nano /etc/kazoo/kamailio/local.cfg
 
 Set your server information:
 
-```
+```conf
 #!substdef "!MY_HOSTNAME!sbc.z1.your-domain.com!g"
 #!substdef "!MY_IP_ADDRESS!YOUR_SBC_IP_ADDRESS!g"
 ```
 
 Point AMQP at your RabbitMQ Server. You can add more zones and secondary/terniary urls:
 
-```
+```conf
 #!substdef "!MY_AMQP_ZONE!z1!g"
 #!substdef "!MY_AMQP_URL!zone=z1;amqp://guest:guest@rabbitmq.your-domain.com:5672!g"
 ```
 
 Configure your postgres connection
-```
+```conf
 #!trydef KZ_DB_MODULE postgres
 #!substdef "!KAMAILIO_DBMS!postgres!g"
 #!substdef "!KAZOO_DB_URL!postgres://kamailio:your_secure_password@127.0.0.1/kamailio!g"
 ```
 
 Set your SIP bindings:
-```
+```conf
 #!substdef "!UDP_SIP!udp:MY_IP_ADDRESS:5060!g"
 #!substdef "!TCP_SIP!tcp:MY_IP_ADDRESS:5060!g"
 #!substdef "!UDP_ALG_SIP!udp:MY_IP_ADDRESS:7000!g"
