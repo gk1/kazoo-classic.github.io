@@ -1,16 +1,17 @@
 ---
-title: To get couchdb installed on debian 12 and build a 3 node 2 zone cluster
+title: To get couchdb installed on debian 12 and build a 3 node x 2 zone cluster
 layout: default
 parent: Community Guides
 ---
 
-## Remove CDROM from source list for apt
+## Comment out CDROM from source list for apt
 ``` 
 nano /etc/apt/sources.list 
+#deb cdrom:[Debian GNU/Linux 12.7.0 _Bookworm_ - Official amd64 DVD Binary-1 with firmware 20240831-10:40]/ bookworm contrib main non-free-firmware
 ```
-comment out cdrom first line
 
-### update and install necessary packages for convenience 
+
+### update and install necessary packages for conveince 
 ```
 apt update && apt install -y curl apt-transport-https gnupg jq wget net-tools nmap tcpdump
 ```
@@ -28,6 +29,7 @@ echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://ap
 ### fix /etc/default/couchdb file to comment out erl line
 ```
 nano /etc/default/couchdb  
+#ERL_EPMD_ADDRESS=127.0.0.1
 ```
 ### edit the local.ini file to set bind address and set a password in the admins section
 ```
@@ -42,12 +44,17 @@ uncomment and set bind address to either 0.0.0.0 or whatever interface ip you wa
 uncomment admin line and set password to something reasonably secure.
 ```
 
-## update vm.args to set name, cookie, and comment out -kernel line
+## Generate erlang cookie, update vm.args to set name, cookie, and comment out -kernel line
 ```
+erlangCookie=$(dd if=/dev/urandom bs=30 count=1 | base64)
+cat $erlangCookie
+DHeNUhLSO6eL9+VKoWkHJpSLbV0fxyYP2noMT0Am
+
 nano /opt/couchdb/etc/vm.args       
--name fqdn
--setcookie =''  <- erlangCookie=$(dd if=/dev/urandom bs=30 count=1 | base64)
+-name couchdb@c1.zone1.example.com
+-setcookie ='DHeNUhLSO6eL9+VKoWkHJpSLbV0fxyYP2noMT0Am'  
 comment out -kernel inet_dist_use_interface line
+#-kernel inet_dist_use_interface {127,0,0,1}
 ```
 
 ## create cluster config for zones
@@ -56,7 +63,10 @@ nano /opt/couchdb/etc/local.d/10-cluster-zones.ini
 add: 
 [cluster]
 placement = zone1:2,zone2:2  
-the number 2 is the number of nodes that must return ok, for data to be considered 200 ok
+
+the placement setting may need to be adjusted depending on your performance desires and risk tolerance.
+For low risk with good performance, something like zone1:3,zone2:1 or zone1:3:zone2:2 might be desired. 
+Or for higher performance and higher risk, maybe 2:1. Or for the paranoid, 3:3
 ```
 ## make sure all hosts are reachable via name, best to use /etc/hosts as dns lookups are slower
 ```
