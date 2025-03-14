@@ -3,8 +3,9 @@ title: To get couchdb installed on debian 12 and build a 3 node x 2 zone cluster
 layout: default
 parent: Community Guides
 ---
+## Installation and configuration of a 2 zone x 3 node per zone cluster on Debian 12
 
-## Comment out CDROM from source list for apt
+### Comment out CDROM from source list for apt
 ``` 
 nano /etc/apt/sources.list 
 #deb cdrom:[Debian GNU/Linux 12.7.0 _Bookworm_ - Official amd64 DVD Binary-1 with firmware 20240831-10:40]/ bookworm contrib main non-free-firmware
@@ -26,6 +27,12 @@ source /etc/os-release
 echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" \
     | tee /etc/apt/sources.list.d/couchdb.list >/dev/null
 ```
+
+### install couchdb
+```
+apt install couchdb -y
+```
+
 ### fix /etc/default/couchdb file to comment out erl line
 ```
 nano /etc/default/couchdb  
@@ -44,7 +51,7 @@ uncomment and set bind address to either 0.0.0.0 or whatever interface ip you wa
 uncomment admin line and set password to something reasonably secure.
 ```
 
-## Generate erlang cookie, update vm.args to set name, cookie, and comment out -kernel line
+### Generate erlang cookie, update vm.args to set name, cookie, and comment out -kernel line
 ```
 erlangCookie=$(dd if=/dev/urandom bs=30 count=1 | base64)
 cat $erlangCookie
@@ -57,7 +64,7 @@ comment out -kernel inet_dist_use_interface line
 #-kernel inet_dist_use_interface {127,0,0,1}
 ```
 
-## create cluster config for zones
+### create cluster config for zones
 ```
 nano /opt/couchdb/etc/local.d/10-cluster-zones.ini   
 add: 
@@ -68,7 +75,7 @@ the placement setting may need to be adjusted depending on your performance desi
 For low risk with good performance, something like zone1:3,zone2:1 or zone1:3:zone2:2 might be desired. 
 Or for higher performance and higher risk, maybe 2:1. Or for the paranoid, 3:3
 ```
-## make sure all hosts are reachable via name, best to use /etc/hosts as dns lookups are slower
+### make sure all hosts are reachable via name, best to use /etc/hosts as dns lookups are slower
 ```
 nano /etc/hosts and add entry for each and every node in each zone, use your ip addresses obviously, and make sure they are all pingable
 1.0.0.1 c1.zone1.example.com c1.zone1
@@ -79,17 +86,17 @@ nano /etc/hosts and add entry for each and every node in each zone, use your ip 
 2.0.0.3 c3.zone2.example.com c3.zone2
 ```
 
-## restart couchdb 
+### restart couchdb 
 ```
 systemctl restart couchdb
 ```
-## check that the node you are on is running, and is shown in all_nodes and cluster_nodes
+### check that the node you are on is running, and is shown in all_nodes and cluster_nodes
 ```
 curl -u "admin:admin2024" http://localhost:5984/_membership | jq .       <- check that its returning itself in all_nodes and cluster_nodes and then continue
 ```
 If that is correct then continue.
 
-## add the rest of the nodes to the cluster and into their associated zones
+###add the rest of the nodes to the cluster and into their associated zones
 ```
 curl -u "admin:admin2024" http://localhost:5984/_node/_local/_nodes/couchdb@c2.zone1.example.com -X PUT -d '{"zone":"zone1"}'
 curl -u "admin:admin2024" http://localhost:5984/_node/_local/_nodes/couchdb@c3.zone1.example.com -X PUT -d '{"zone":"zone1"}'
@@ -98,23 +105,23 @@ curl -u "admin:admin2024" http://localhost:5984/_node/_local/_nodes/couchdb@c2.z
 curl -u "admin:admin2024" http://localhost:5984/_node/_local/_nodes/couchdb@c3.zone2.example.com -X PUT -d '{"zone":"zone2"}' 
 ```
 
-## Now lets fix the primary nodes zone placement and get the document rev number for later
+### Now lets fix the primary nodes zone placement and get the document rev number for later
 ```
 curl -u "admin:admin2024" -s http://localhost:5984/_node/_local/_nodes/couchdb@c1.zone1.example.com  <- must get the rev number so we can move this node into the proper zone
 ```
 
-## Now that we have the rev number lets complete the zone config
+### Now that we have the rev number lets complete the zone config
 ```
 curl -u "admin:admin2024" -s http://localhost:5984/_node/_local/_nodes/couchdb@c1.zone1.example.com?rev=rev_number_above -d '{"zone":"zone1"}' -X PUT
 ```
 
-## Create the users and replicator databases
+### Create the users and replicator databases
 ```
 curl -u "admin:admin2024" -X PUT http://localhost:5984/_users
 curl -u "admin:admin2024" -X PUT http://localhost:5984/_replicator
 ```
 
-## create a database and document to test database replication
+### create a database and document to test database replication
 ```
 curl -u "admin:admin2024" -X PUT http://localhost:5984/testdb/ -d "{"mydata":"test"}"
 copy docid and paste below
