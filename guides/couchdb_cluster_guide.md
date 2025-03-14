@@ -11,7 +11,7 @@ nano /etc/apt/sources.list
 ```
 
 
-### update and install necessary packages for conveince 
+### update and install necessary packages for convenience 
 ```
 apt update && apt install -y curl apt-transport-https gnupg jq wget net-tools nmap tcpdump
 ```
